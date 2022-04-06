@@ -130,3 +130,4 @@ dmypy.json
 /output8000_final.xlsx
 /messages.json
 /slack_messages_importer.py
+/draft.py
