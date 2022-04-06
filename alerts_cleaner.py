@@ -30,12 +30,32 @@ for item in messages_all:
         # print(item['attachments'])
         # print(item['attachments'][0]['fallback'])
 
+        content = item['attachments'][0]['fallback']
         regex_a_title = r"(?<=] )(.+)(?= \| )"
-        matches_a_title = re.findall(regex_a_title, item['attachments'][0]['fallback'], re.MULTILINE)
-        if len(matches_a_title) >= 5:
-            slownik['a_title'] = matches_a_title
+        matches_a_title = re.findall(regex_a_title, content, re.MULTILINE)
+        if len(matches_a_title) > 0:
+            slownik['title_from_attachments'] = matches_a_title[0]
         else:
-            slownik['a_title'] = item['attachments'][0]['fallback']
+            slownik['title_from_attachments'] = content
+
+        if "lambda" in content:
+            slownik['source_service'] = "lambda"
+        if "sqs" in content:
+            slownik['source_service'] = "SQS"
+        if "emr" in content:
+            slownik['source_service'] = "EMR"
+        if "airflow_dag" in content:
+            slownik['source_service'] = "mwaa-DAG"
+        if "recommendations" in content:
+            slownik['source_service'] = "recommendations"
+
+
+
+        if "RESOLVED" in item['attachments'][0]['fallback']:
+            slownik['a_status'] = "RESOLVED"
+        if "FIRING" in item['attachments'][0]['fallback']:
+            slownik['a_status'] = "FIRING"
+
 
         regex_a_firing = r"(?<=\[FIRING:)(\d+)(?=\] )"
         matches_a_firing = re.findall(regex_a_firing, item['attachments'][0]['fallback'], re.MULTILINE)
@@ -82,12 +102,27 @@ for item in messages_all:
 
         regex_title = r"(?<=^).*?(?=@@@)"
         matches_title = re.findall(regex_title, text)
-        slownik['title'] = matches_title[0]
+        slownik['title_from_text'] = matches_title[0]
+
+        if len(matches_title) > 0:
+            if "your last query scanned" in matches_title[0]:
+                slownik['source_service'] = "Athena"
+            if "sqs" in matches_title[0]:
+                slownik['source_service'] = "SQS"
+            if "CloudWatch notification" in matches_title[0]:
+                slownik['alarm_source'] = "CloudWatch"
+            if "nrt" in matches_title[0] or "NRT" in matches_title[0]:
+                slownik['source_service'] = "nrt"
+            if "braintree" in matches_title[0]:
+                slownik['source_service'] = "braintree"
+            if "article-contents" in matches_title[0]:
+                slownik['source_service'] = "article-contents"
 
         if "DAG" in matches1:
             regex_dag = r"(?<=DAG\*: `)(.*?)(?=`@@@)"
             matches_dag = re.findall(regex_dag, text, re.MULTILINE)
             slownik['DAG_name'] = matches_dag[0]
+            slownik['source_service'] = "mwaa-DAG"
 
         if "Priority" in matches1:
             regex_priority = r"(?<=Priority\*: )(.*?)(?=@@@)"
@@ -132,7 +167,7 @@ for item in messages_all:
         if "Runbook" in matches1:
             regex_runbook = r"(?<=Runbook\*: <)(.*?)(?=>@@@)"
             matches_runbook = re.findall(regex_runbook, text, re.MULTILINE)
-            slownik['runbook'] = matches_time[0]
+            slownik['runbook'] = matches_runbook[0]
 
     n += 1
     result.append(slownik)
@@ -141,4 +176,4 @@ for item in messages_all:
 print(f"The dictionary has {len(result)} items.")
 df = pd.DataFrame(result)
 print(df.count())
-df.to_excel(excel_writer="output8000_final.xlsx")
+df.to_excel(excel_writer="output8000_final_v1.xlsx")
