@@ -127,5 +127,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-.output8000_final.xlsx
-.messages.json
+/output8000_final.xlsx
+/messages.json
